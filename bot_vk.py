@@ -2,6 +2,7 @@ from vk_api import VkApi
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from google.cloud import dialogflow
 from google.oauth2 import service_account
+from dotenv import load_dotenv
 import os
 import logging
 import random
@@ -17,7 +18,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-from dotenv import load_dotenv
+
 load_dotenv()
 
 VK_GROUP_TOKEN = os.getenv('VK_GROUP_TOKEN')
@@ -41,12 +42,17 @@ def get_dialogflow_response(text, session_id, language_code='ru'):
             query_input=query_input
         )
         
-        logger.info(f"Dialogflow ответ: {response.query_result.fulfillment_text}")
-        return response.query_result.fulfillment_text
+        result = response.query_result
+        is_fallback = result.intent.is_fallback
+        
+        logger.info(f"Dialogflow ответ: {result.fulfillment_text}")
+        logger.info(f"Это fallback-интент: {is_fallback}")
+        
+        return result.fulfillment_text, is_fallback
         
     except Exception as e:
         logger.error(f"Ошибка Dialogflow: {e}")
-        return "Извините, произошла ошибка при обработке запроса."
+        return "Извините, произошла ошибка при обработке запроса.", True
 
 class VKBot:
     def __init__(self, group_token, group_id):
@@ -72,15 +78,20 @@ class VKBot:
             logger.error(f"Ошибка отправки сообщения пользователю {user_id}: {e}")
     
     def handle_start(self, user_id):
-        """Обработка команды start"""
         welcome_message = (
             "Привет! Я умный бот с интеграцией Dialogflow. "
-            "Задайте мне любой вопрос!"
+            "Задайте мне любой вопрос! Если я не смогу помочь, "
+            "вам ответит оператор техподдержки."
         )
         self.send_message(user_id, welcome_message)
     
     def handle_message(self, user_id, text):
-        response_text = get_dialogflow_response(text, str(user_id))
+        response_text, is_fallback = get_dialogflow_response(text, str(user_id))
+        
+        if is_fallback:
+            logger.info(f"Fallback-интент обнаружен для пользователя {user_id}. Сообщение не отправляется.")
+            return
+        
         self.send_message(user_id, response_text)
     
     def run(self):
@@ -108,7 +119,6 @@ class VKBot:
                 time.sleep(10)
 
 def check_environment():
-    """Проверка всех необходимых переменных и файлов"""
     errors = []
     
     if not VK_GROUP_TOKEN:
@@ -125,9 +135,6 @@ def check_environment():
     
     if VK_GROUP_ID and not VK_GROUP_ID.isdigit():
         errors.append("❌ VK_GROUP_ID должен содержать только цифры!")
-    
-    if VK_GROUP_TOKEN and len(VK_GROUP_TOKEN) < 10:
-        errors.append("❌ VK_GROUP_TOKEN слишком короткий!")
     
     return errors
 
