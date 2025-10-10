@@ -21,15 +21,16 @@ ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID')
 
 def send_alert(message, level="ERROR", bot_name="Telegram Bot"):
     if not MONITORING_BOT_TOKEN or not ADMIN_CHAT_ID:
+        logger.warning("Monitoring bot token or admin chat ID not set")
         return
 
     try:
-        formatted_message = f"🚨 *{level} Alert - {bot_name}*\n\n{message}"
+        formatted_message = f"{level} Alert - {bot_name}\n\n{message}"
         url = f"https://api.telegram.org/bot{MONITORING_BOT_TOKEN}/sendMessage"
         payload = {
             'chat_id': ADMIN_CHAT_ID,
             'text': formatted_message,
-            'parse_mode': 'Markdown'
+            'parse_mode': 'HTML'
         }
         response = requests.post(url, json=payload, timeout=10)
         response.raise_for_status()
@@ -37,7 +38,8 @@ def send_alert(message, level="ERROR", bot_name="Telegram Bot"):
 
     except Exception as e:
         logger.error(f"Failed to send alert to monitoring bot: {e}")
-
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"Response content: {e.response.text}")
 
 def get_dialogflow_response(text, session_id, language_code='ru'):
     try:
