@@ -155,6 +155,7 @@ python DialogFlowscript.py
 Скрипт запросит подтверждение перед выполнением деструктивных операций.
 
 ## Демонстрация работы
+![tgbot](https://github.com/user-attachments/assets/5e6f4247-12a1-49ce-ba4d-a8060f4787d8)
+![vkbot](https://github.com/user-attachments/assets/a6c3fd89-fa8f-4e80-8f5e-601a2bbe17d1)
 
-![tgbot](https://gist.github.com/user-attachments/assets/c2a7cd93-bdc7-4c15-89b0-93160a91bc5f)
-![vkbot](https://gist.github.com/user-attachments/assets/800ebdeb-45a4-4a12-94d4-244d21d24a09)
+
