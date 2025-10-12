@@ -156,6 +156,6 @@ python DialogFlowscript.py
 
 ## Демонстрация работы
 
-![enter image description here](https://i.postimg.cc/TYDhRPJx/tgbot.gif)
+<img src="https://i.postimg.cc/TYDhRPJx/tgbot.gif" alt="Demo" width="400">
 
-![enter image description here](https://i.postimg.cc/43J3bQkf/vkbot.gif)
+<img src="https://i.postimg.cc/43J3bQkf/vkbot.gif" alt="Demo" width="400">
