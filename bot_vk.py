@@ -86,7 +86,7 @@ def send_message(vk_api, user_id, message):
 
 def handle_start(vk_api, user_id):
     welcome_message = (
-        "Привет! Я умный бот с интеграцией Dialogflow. "
+        "Привет!"
         "Задайте мне любой вопрос! Если я не смогу помочь, "
         "вам ответит оператор техподдержки."
     )

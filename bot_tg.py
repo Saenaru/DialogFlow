@@ -63,7 +63,7 @@ def get_dialogflow_response(text, session_id, language_code='ru'):
 
 def start(update, context):
     update.message.reply_text(
-        "Привет! Я умный бот с интеграцией Dialogflow. "
+        "Привет!"
         "Задайте мне любой вопрос!"
     )
 
