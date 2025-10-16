@@ -51,9 +51,12 @@ def get_dialogflow_response(text, session_id, language_code='ru'):
     DIALOGFLOW_KEY_FILE = os.getenv('DIALOGFLOW_KEY_FILE')
     
     try:
+        platform_session_id = f"tg-{session_id}"
+        logger.info(f"Dialogflow запрос для сессии: {platform_session_id}")
+        
         credentials = service_account.Credentials.from_service_account_file(DIALOGFLOW_KEY_FILE)
         session_client = dialogflow.SessionsClient(credentials=credentials)
-        session = session_client.session_path(DIALOGFLOW_PROJECT_ID, session_id)
+        session = session_client.session_path(DIALOGFLOW_PROJECT_ID, platform_session_id)
         text_input = dialogflow.TextInput(text=text, language_code=language_code)
         query_input = dialogflow.QueryInput(text=text_input)
         response = session_client.detect_intent(
@@ -67,7 +70,6 @@ def get_dialogflow_response(text, session_id, language_code='ru'):
         logger.error(error_msg)
         send_alert(error_msg, "ERROR", "Telegram Bot")
         return "Извините, произошла ошибка при обработке запроса."
-
 
 def start(update, context):
     update.message.reply_text(
@@ -89,31 +91,14 @@ def error_handler(update, context):
     send_alert(error_msg, "ERROR", "Telegram Bot")
 
 
-def main():
-    load_dotenv()
-    setup_logging()
-
+def initialize_bot():
     TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-    DIALOGFLOW_PROJECT_ID = os.getenv('DIALOGFLOW_PROJECT_ID')
-    DIALOGFLOW_KEY_FILE = os.getenv('DIALOGFLOW_KEY_FILE')
-
+    
     if not TELEGRAM_TOKEN:
         error_msg = "❌ TELEGRAM_BOT_TOKEN не найден в .env файле!"
         logger.error(error_msg)
         send_alert(error_msg, "CRITICAL", "Telegram Bot")
-        return
-
-    if not DIALOGFLOW_PROJECT_ID:
-        error_msg = "❌ DIALOGFLOW_PROJECT_ID не найден в .env файле!"
-        logger.error(error_msg)
-        send_alert(error_msg, "CRITICAL", "Telegram Bot")
-        return
-
-    if not os.path.exists(DIALOGFLOW_KEY_FILE):
-        error_msg = f"❌ Файл {DIALOGFLOW_KEY_FILE} не найден!"
-        logger.error(error_msg)
-        send_alert(error_msg, "CRITICAL", "Telegram Bot")
-        return
+        return False
 
     try:
         logger.info("🤖 Telegram Бот запускается...")
@@ -128,12 +113,36 @@ def main():
         bot_info = updater.bot.get_me()
         logger.info(f"✅ Бот успешно запущен! @{bot_info.username}")
         send_alert(f"Telegram Bot успешно запущен! @{bot_info.username}", "INFO", "Telegram Bot")
-        updater.idle()
-
+        return updater
     except Exception as e:
         error_msg = f"❌ Ошибка при запуске бота: {e}"
         logger.error(error_msg)
         send_alert(error_msg, "CRITICAL", "Telegram Bot")
+        return None
+
+
+def main():
+    load_dotenv()
+    setup_logging()
+
+    DIALOGFLOW_PROJECT_ID = os.getenv('DIALOGFLOW_PROJECT_ID')
+    DIALOGFLOW_KEY_FILE = os.getenv('DIALOGFLOW_KEY_FILE')
+
+    if not DIALOGFLOW_PROJECT_ID:
+        error_msg = "❌ DIALOGFLOW_PROJECT_ID не найден в .env файле!"
+        logger.error(error_msg)
+        send_alert(error_msg, "CRITICAL", "Telegram Bot")
+        return
+
+    if not os.path.exists(DIALOGFLOW_KEY_FILE):
+        error_msg = f"❌ Файл {DIALOGFLOW_KEY_FILE} не найден!"
+        logger.error(error_msg)
+        send_alert(error_msg, "CRITICAL", "Telegram Bot")
+        return
+
+    updater = initialize_bot()
+    if updater:
+        updater.idle()
 
 
 if __name__ == '__main__':

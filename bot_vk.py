@@ -46,12 +46,12 @@ def send_alert(message, level="INFO", bot_name="VK Bot"):
 def get_dialogflow_response(text, session_id, language_code='ru'):
     DIALOGFLOW_PROJECT_ID = os.getenv('DIALOGFLOW_PROJECT_ID')
     DIALOGFLOW_KEY_FILE = os.getenv('DIALOGFLOW_KEY_FILE')
-    
     try:
-        logger.info(f"Dialogflow запрос: {text} для сессии {session_id}")
+        platform_session_id = f"vk-{session_id}"
+        logger.info(f"Dialogflow запрос: {text} для сессии {platform_session_id}")
         credentials = service_account.Credentials.from_service_account_file(DIALOGFLOW_KEY_FILE)
         session_client = dialogflow.SessionsClient(credentials=credentials)
-        session = session_client.session_path(DIALOGFLOW_PROJECT_ID, session_id)
+        session = session_client.session_path(DIALOGFLOW_PROJECT_ID, platform_session_id)
         text_input = dialogflow.TextInput(text=text, language_code=language_code)
         query_input = dialogflow.QueryInput(text=text_input)
         response = session_client.detect_intent(
@@ -101,7 +101,7 @@ def handle_user_message(vk_api, user_id, text):
     send_message(vk_api, user_id, response_text)
 
 
-def run_bot():
+def initialize_vk_bot():
     VK_GROUP_TOKEN = os.getenv('VK_GROUP_TOKEN')
     VK_GROUP_ID = os.getenv('VK_GROUP_ID')
     
@@ -123,32 +123,35 @@ def run_bot():
             "VK Bot"
         )
         logger.info("✅ VK Bot успешно запущен и готов к работе!")
-        while True:
-            try:
-                logger.info("Ожидание событий LongPoll...")
-                for event in longpoll.listen():
-                    if event.type == VkBotEventType.MESSAGE_NEW:
-                        message = event.object.message
-                        user_id = message['from_id']
-                        text = message['text'].strip()
-                        logger.info(f"Получено сообщение от {user_id}: {text}")
-                        if text.lower() in ['/start', 'start', 'начать', 'старт', 'привет']:
-                            handle_start(vk_api, user_id)
-                        else:
-                            handle_user_message(vk_api, user_id, text)
-
-            except Exception as e:
-                error_msg = f"Ошибка в основном цикле VK Bot: {e}"
-                logger.error(error_msg)
-                send_alert(error_msg, "ERROR", "VK Bot")
-                logger.info("Перезапуск через 10 секунд...")
-                time.sleep(10)
-
+        return vk_api, longpoll
     except Exception as e:
         error_msg = f"Ошибка инициализации VK бота: {e}"
         logger.error(error_msg)
         send_alert(error_msg, "ERROR", "VK Bot")
-        raise
+        return None, None
+
+
+def run_bot_loop(vk_api, longpoll):
+    while True:
+        try:
+            logger.info("Ожидание событий LongPoll...")
+            for event in longpoll.listen():
+                if event.type == VkBotEventType.MESSAGE_NEW:
+                    message = event.object.message
+                    user_id = message['from_id']
+                    text = message['text'].strip()
+                    logger.info(f"Получено сообщение от {user_id}: {text}")
+                    if text.lower() in ['/start', 'start', 'начать', 'старт', 'привет']:
+                        handle_start(vk_api, user_id)
+                    else:
+                        handle_user_message(vk_api, user_id, text)
+
+        except Exception as e:
+            error_msg = f"Ошибка в основном цикле VK Bot: {e}"
+            logger.error(error_msg)
+            send_alert(error_msg, "ERROR", "VK Bot")
+            logger.info("Перезапуск через 10 секунд...")
+            time.sleep(10)
 
 
 def main():
@@ -186,12 +189,9 @@ def main():
         send_alert(error_msg, "ERROR", "VK Bot")
         return
 
-    try:
-        run_bot()
-    except Exception as e:
-        error_msg = f"❌ Ошибка при запуске бота: {e}"
-        logger.error(error_msg)
-        send_alert(error_msg, "ERROR", "VK Bot")
+    vk_api, longpoll = initialize_vk_bot()
+    if vk_api and longpoll:
+        run_bot_loop(vk_api, longpoll)
 
 
 if __name__ == '__main__':
