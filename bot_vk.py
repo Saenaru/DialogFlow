@@ -9,26 +9,23 @@ import random
 import time
 import requests
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-    ]
-)
 logger = logging.getLogger(__name__)
 
-load_dotenv()
 
-VK_GROUP_TOKEN = os.getenv('VK_GROUP_TOKEN')
-VK_GROUP_ID = os.getenv('VK_GROUP_ID')
-DIALOGFLOW_PROJECT_ID = os.getenv('DIALOGFLOW_PROJECT_ID')
-DIALOGFLOW_KEY_FILE = "newagent-ucxn-8332c4ae589a.json"
-MONITORING_BOT_TOKEN = os.getenv('MONITORING_BOT_TOKEN')
-ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID')
+def setup_logging():
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+        ]
+    )
 
 
 def send_alert(message, level="INFO", bot_name="VK Bot"):
+    MONITORING_BOT_TOKEN = os.getenv('MONITORING_BOT_TOKEN')
+    ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID')
+    
     if not MONITORING_BOT_TOKEN or not ADMIN_CHAT_ID:
         return
     try:
@@ -47,6 +44,9 @@ def send_alert(message, level="INFO", bot_name="VK Bot"):
 
 
 def get_dialogflow_response(text, session_id, language_code='ru'):
+    DIALOGFLOW_PROJECT_ID = os.getenv('DIALOGFLOW_PROJECT_ID')
+    DIALOGFLOW_KEY_FILE = os.getenv('DIALOGFLOW_KEY_FILE')
+    
     try:
         logger.info(f"Dialogflow запрос: {text} для сессии {session_id}")
         credentials = service_account.Credentials.from_service_account_file(DIALOGFLOW_KEY_FILE)
@@ -102,6 +102,9 @@ def handle_user_message(vk_api, user_id, text):
 
 
 def run_bot():
+    VK_GROUP_TOKEN = os.getenv('VK_GROUP_TOKEN')
+    VK_GROUP_ID = os.getenv('VK_GROUP_ID')
+    
     logger.info("🤖 VK Бот запускается...")
     try:
         logger.info("Инициализация VK бота...")
@@ -149,7 +152,15 @@ def run_bot():
 
 
 def main():
+    load_dotenv()
+    setup_logging()
+
     logger.info("=== Запуск VK Bot ===")
+
+    VK_GROUP_TOKEN = os.getenv('VK_GROUP_TOKEN')
+    VK_GROUP_ID = os.getenv('VK_GROUP_ID')
+    DIALOGFLOW_PROJECT_ID = os.getenv('DIALOGFLOW_PROJECT_ID')
+    DIALOGFLOW_KEY_FILE = os.getenv('DIALOGFLOW_KEY_FILE')
 
     if not VK_GROUP_TOKEN:
         error_msg = "❌ VK_GROUP_TOKEN не найден!"

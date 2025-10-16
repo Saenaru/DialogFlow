@@ -69,6 +69,8 @@ VK_GROUP_ID=your_vk_group_id_here
 
 # Dialogflow
 DIALOGFLOW_PROJECT_ID=your_dialogflow_project_id_here
+DIALOGFLOW_KEY_FILE="ваш/путь/к/файлу-ключу.json"
+JSON_URL="https://ваш-сайт/ваш-файл.json"
 
 # Monitoring
 MONITORING_BOT_TOKEN=your_monitoring_bot_token_here
@@ -120,7 +122,7 @@ python bot_vk.py
 ### Импорт интентов в Dialogflow:
 
 ```bash
-python DialogFlowscript.py
+python dialog_flow_script.py
 ```
 
 ## Система мониторинга
@@ -138,7 +140,7 @@ python DialogFlowscript.py
 
 ## Скрипт импорта интентов
 
-`DialogFlowscript.py` предоставляет функциональность для:
+`dialog_flow_script.py` предоставляет функциональность для:
 
 -   **Предпросмотра** интентов перед импортом
     
@@ -150,7 +152,7 @@ python DialogFlowscript.py
     
 
 ```bash
-python DialogFlowscript.py
+python dialog_flow_script.py
 ```
 Скрипт запросит подтверждение перед выполнением деструктивных операций.
 

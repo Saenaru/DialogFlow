@@ -7,19 +7,23 @@ import logging
 import requests
 import time
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-load_dotenv()
 
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-DIALOGFLOW_PROJECT_ID = os.getenv('DIALOGFLOW_PROJECT_ID')
-DIALOGFLOW_KEY_FILE = "newagent-ucxn-8332c4ae589a.json"
-MONITORING_BOT_TOKEN = os.getenv('MONITORING_BOT_TOKEN')
-ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID')
+def setup_logging():
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+        ]
+    )
 
 
 def send_alert(message, level="ERROR", bot_name="Telegram Bot"):
+    MONITORING_BOT_TOKEN = os.getenv('MONITORING_BOT_TOKEN')
+    ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID')
+    
     if not MONITORING_BOT_TOKEN or not ADMIN_CHAT_ID:
         logger.warning("Monitoring bot token or admin chat ID not set")
         return
@@ -41,7 +45,11 @@ def send_alert(message, level="ERROR", bot_name="Telegram Bot"):
         if hasattr(e, 'response') and e.response is not None:
             logger.error(f"Response content: {e.response.text}")
 
+
 def get_dialogflow_response(text, session_id, language_code='ru'):
+    DIALOGFLOW_PROJECT_ID = os.getenv('DIALOGFLOW_PROJECT_ID')
+    DIALOGFLOW_KEY_FILE = os.getenv('DIALOGFLOW_KEY_FILE')
+    
     try:
         credentials = service_account.Credentials.from_service_account_file(DIALOGFLOW_KEY_FILE)
         session_client = dialogflow.SessionsClient(credentials=credentials)
@@ -82,6 +90,13 @@ def error_handler(update, context):
 
 
 def main():
+    load_dotenv()
+    setup_logging()
+
+    TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+    DIALOGFLOW_PROJECT_ID = os.getenv('DIALOGFLOW_PROJECT_ID')
+    DIALOGFLOW_KEY_FILE = os.getenv('DIALOGFLOW_KEY_FILE')
+
     if not TELEGRAM_TOKEN:
         error_msg = "❌ TELEGRAM_BOT_TOKEN не найден в .env файле!"
         logger.error(error_msg)
