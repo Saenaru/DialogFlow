@@ -4,7 +4,7 @@ import os
 import logging
 import random
 import time
-from shared_utils import setup_logging, send_alert, get_dialogflow_response, check_required_env_vars, validate_dialogflow_config
+from dialogflow_utils import setup_logging, send_alert, get_dialogflow_response, check_required_env_vars, validate_dialogflow_config
 
 logger = logging.getLogger(__name__)
 
