@@ -1,75 +1,11 @@
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-from dotenv import load_dotenv
-from google.cloud import dialogflow
-from google.oauth2 import service_account
 import os
 import logging
-import requests
 import time
+from shared_utils import setup_logging, send_alert, get_dialogflow_response, check_required_env_vars, validate_dialogflow_config
 
 logger = logging.getLogger(__name__)
 
-
-def setup_logging():
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler(),
-        ]
-    )
-
-
-def send_alert(message, level="ERROR", bot_name="Telegram Bot"):
-    MONITORING_BOT_TOKEN = os.getenv('MONITORING_BOT_TOKEN')
-    ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID')
-    
-    if not MONITORING_BOT_TOKEN or not ADMIN_CHAT_ID:
-        logger.warning("Monitoring bot token or admin chat ID not set")
-        return
-
-    try:
-        formatted_message = f"{level} Alert - {bot_name}\n\n{message}"
-        url = f"https://api.telegram.org/bot{MONITORING_BOT_TOKEN}/sendMessage"
-        payload = {
-            'chat_id': ADMIN_CHAT_ID,
-            'text': formatted_message,
-            'parse_mode': 'HTML'
-        }
-        response = requests.post(url, json=payload, timeout=10)
-        response.raise_for_status()
-        logger.info(f"Alert sent to monitoring bot: {level}")
-
-    except Exception as e:
-        logger.error(f"Failed to send alert to monitoring bot: {e}")
-        if hasattr(e, 'response') and e.response is not None:
-            logger.error(f"Response content: {e.response.text}")
-
-
-def get_dialogflow_response(text, session_id, language_code='ru'):
-    DIALOGFLOW_PROJECT_ID = os.getenv('DIALOGFLOW_PROJECT_ID')
-    DIALOGFLOW_KEY_FILE = os.getenv('DIALOGFLOW_KEY_FILE')
-    
-    try:
-        platform_session_id = f"tg-{session_id}"
-        logger.info(f"Dialogflow запрос для сессии: {platform_session_id}")
-        
-        credentials = service_account.Credentials.from_service_account_file(DIALOGFLOW_KEY_FILE)
-        session_client = dialogflow.SessionsClient(credentials=credentials)
-        session = session_client.session_path(DIALOGFLOW_PROJECT_ID, platform_session_id)
-        text_input = dialogflow.TextInput(text=text, language_code=language_code)
-        query_input = dialogflow.QueryInput(text=text_input)
-        response = session_client.detect_intent(
-            session=session,
-            query_input=query_input
-        )
-        return response.query_result.fulfillment_text
-
-    except Exception as e:
-        error_msg = f"Ошибка Dialogflow: {e}"
-        logger.error(error_msg)
-        send_alert(error_msg, "ERROR", "Telegram Bot")
-        return "Извините, произошла ошибка при обработке запроса."
 
 def start(update, context):
     update.message.reply_text(
@@ -81,7 +17,7 @@ def start(update, context):
 def handle_message(update, context):
     user_message = update.message.text
     user_id = update.message.from_user.id
-    response_text = get_dialogflow_response(user_message, str(user_id))
+    response_text, _ = get_dialogflow_response(user_message, str(user_id), platform='tg')
     update.message.reply_text(response_text)
 
 
@@ -93,7 +29,7 @@ def error_handler(update, context):
 
 def initialize_bot():
     TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-    
+
     if not TELEGRAM_TOKEN:
         error_msg = "❌ TELEGRAM_BOT_TOKEN не найден в .env файле!"
         logger.error(error_msg)
@@ -122,22 +58,11 @@ def initialize_bot():
 
 
 def main():
-    load_dotenv()
     setup_logging()
-
-    DIALOGFLOW_PROJECT_ID = os.getenv('DIALOGFLOW_PROJECT_ID')
-    DIALOGFLOW_KEY_FILE = os.getenv('DIALOGFLOW_KEY_FILE')
-
-    if not DIALOGFLOW_PROJECT_ID:
-        error_msg = "❌ DIALOGFLOW_PROJECT_ID не найден в .env файле!"
-        logger.error(error_msg)
-        send_alert(error_msg, "CRITICAL", "Telegram Bot")
+    required_vars = ['TELEGRAM_BOT_TOKEN', 'MONITORING_BOT_TOKEN', 'ADMIN_CHAT_ID']
+    if not check_required_env_vars(required_vars, "Telegram Bot"):
         return
-
-    if not os.path.exists(DIALOGFLOW_KEY_FILE):
-        error_msg = f"❌ Файл {DIALOGFLOW_KEY_FILE} не найден!"
-        logger.error(error_msg)
-        send_alert(error_msg, "CRITICAL", "Telegram Bot")
+    if not validate_dialogflow_config("Telegram Bot"):
         return
 
     updater = initialize_bot()
