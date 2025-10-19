@@ -70,7 +70,7 @@ VK_GROUP_ID=your_vk_group_id_here
 # Dialogflow
 DIALOGFLOW_PROJECT_ID=your_dialogflow_project_id_here
 DIALOGFLOW_KEY_FILE="ваш/путь/к/файлу-ключу.json"
-JSON_URL="https://ваш-сайт/ваш-файл.json"
+INTENTS_DATA_SOURCE_URL="https://ваш-сайт/ваш-файл.json"(Обязательная переменная только для dialog_flow_script.py)
 
 # Monitoring
 MONITORING_BOT_TOKEN=your_monitoring_bot_token_here

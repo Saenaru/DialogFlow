@@ -5,12 +5,6 @@ import os
 from dotenv import load_dotenv
 
 
-def download_json(url):
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.json()
-
-
 def create_intent(display_name, training_phrases, answer, dialogflow_key_file, dialogflow_project_id):
     credentials = service_account.Credentials.from_service_account_file(dialogflow_key_file)
     intents_client = dialogflow.IntentsClient(credentials=credentials)
@@ -39,8 +33,9 @@ def create_intent(display_name, training_phrases, answer, dialogflow_key_file, d
 
 
 def get_intents_data(json_url):
-    data = download_json(json_url)
-    return data
+    response = requests.get(json_url)
+    response.raise_for_status()
+    return response.json()
 
 
 def import_intents_from_url(dialogflow_key_file, dialogflow_project_id, json_url):
@@ -92,17 +87,19 @@ def show_import_results(results):
 
 def main():
     load_dotenv()
-    DIALOGFLOW_KEY_FILE = os.getenv("DIALOGFLOW_KEY_FILE")
-    DIALOGFLOW_PROJECT_ID = os.getenv("DIALOGFLOW_PROJECT_ID")
-    JSON_URL = os.getenv("JSON_URL")
-    if not all([DIALOGFLOW_KEY_FILE, DIALOGFLOW_PROJECT_ID, JSON_URL]):
+    dialogflow_key_file = os.getenv("DIALOGFLOW_KEY_FILE")
+    dialogflow_project_id = os.getenv("DIALOGFLOW_PROJECT_ID")
+    intents_data_source_url = os.getenv("JSON_URL")
+    
+    if not all([dialogflow_key_file, dialogflow_project_id, intents_data_source_url]):
         print("❌ Ошибка: Не все необходимые переменные окружения установлены")
         return
+    
     print("🤖 Импорт интентов в Dialogflow")
     print("=" * 50)
     print("📥 Скачиваем JSON файл...")
-    results = import_intents_from_url(DIALOGFLOW_KEY_FILE, DIALOGFLOW_PROJECT_ID, JSON_URL)
-    show_import_results(results)
+    import_results = import_intents_from_url(dialogflow_key_file, dialogflow_project_id, intents_data_source_url)
+    show_import_results(import_results)
 
 
 if __name__ == '__main__':
